@@ -26,7 +26,7 @@ namespace TelephoneBookAssignment.Helpers
         public AccessToken CreateToken(User user, List<UserClaim> userClaims)
         {
             _accessTokenExpiration = DateTime.Now.AddMinutes(_tokenOptions.AccessTokenExpiration); // 15 minutes
-            var securityKey = SecurityKeyHelper.CreateSecurityKey(_tokenOptions.SecurityKey);
+            var securityKey = SecurityKeyHelper.CreateSecurityKey(_tokenOptions.SecurityKey); // symmetric key
             var signingCredentials = SigningCredentialsHelper.CreateSigningCredentials(securityKey); // Security key + HmacSha512Signature
 
             var jwt = CreateJwtSecurityToken(_tokenOptions, user, signingCredentials, userClaims);
@@ -58,6 +58,7 @@ namespace TelephoneBookAssignment.Helpers
         private IEnumerable<Claim> SetClaims(User user, List<UserClaim> userClaims)
         {
             var claims = new List<Claim>();
+            // From ClaimsExtension
             claims.AddNameIdentifier(user.ObjectId.ToString());
             claims.AddEmail(user.Email);
             claims.AddName($"{user.Username}");

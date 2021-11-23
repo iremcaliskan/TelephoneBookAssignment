@@ -10,3 +10,4 @@ namespace TelephoneBookAssignment.Helpers
         }
     }
 }
+// This class defines the which security key and security algorithm will be used in managing system of Jwt

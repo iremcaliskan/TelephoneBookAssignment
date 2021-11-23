@@ -7,6 +7,7 @@ namespace TelephoneBookAssignment.Helpers
     {
         public static SecurityKey CreateSecurityKey(string securityKey)
         {
+            // Get the symmetric of given security key
             return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(securityKey));
         }
     }
