@@ -3,6 +3,8 @@ using TelephoneBookAssignment.Application.ContactOperations.Commands.CreateConta
 using TelephoneBookAssignment.Application.ContactOperations.Commands.UpdateContact;
 using TelephoneBookAssignment.Application.ContactOperations.Queries.GetContactDetails;
 using TelephoneBookAssignment.Application.ContactOperations.Queries.GetContacts;
+using TelephoneBookAssignment.Application.UserOperations.Commands.CreateUser;
+using TelephoneBookAssignment.Entities;
 using TelephoneBookAssignment.Shared.Entities;
 
 namespace TelephoneBookAssignment.Mappings
@@ -16,6 +18,9 @@ namespace TelephoneBookAssignment.Mappings
             CreateMap<Contact, ContactDetailViewModel>();
             CreateMap<CreateContactModel, Contact>();
             CreateMap<UpdateContactModel, Contact>();
+
+            // User:
+            CreateMap<CreateUserModel, User>();
         }
     }
 }

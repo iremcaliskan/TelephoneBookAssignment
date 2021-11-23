@@ -17,6 +17,7 @@ namespace TelephoneBookAssignment.Application.ContactOperations.Queries.GetConta
             _mapper = mapper;
         }
 
+
         public async Task<List<ContactViewModel>> Handle()
         {
             var contacts = await _collection.Find(x => true).ToListAsync();

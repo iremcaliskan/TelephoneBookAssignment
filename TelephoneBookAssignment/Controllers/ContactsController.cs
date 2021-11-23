@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using TelephoneBookAssignment.Application.ContactOperations.Commands.CreateContact;
 using TelephoneBookAssignment.Application.ContactOperations.Commands.DeleteContact;
 using TelephoneBookAssignment.Application.ContactOperations.Commands.UpdateContact;
@@ -29,6 +30,7 @@ namespace TelephoneBookAssignment.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "admin,default")]
         public async Task<IActionResult> GetContacts()
         {
             GetContactsQuery query = new(_dbCollection, _mapper);
@@ -39,6 +41,7 @@ namespace TelephoneBookAssignment.Controllers
         }
 
         [HttpGet("{objectId}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> GetById(string objectId)
         {
             GetContactDetailsQuery query = new(_dbCollection, _mapper);
@@ -53,6 +56,7 @@ namespace TelephoneBookAssignment.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "admin,default")]
         public async Task<IActionResult> AddContact([FromBody] CreateContactModel createContactModel)
         {
             CreateContactCommand command = new(_dbCollection, _mapper);
@@ -67,6 +71,7 @@ namespace TelephoneBookAssignment.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "admin,default")]
         public async Task<IActionResult> UpdateContact(string objectId, [FromBody] UpdateContactModel updateContactModel)
         {
             UpdateContactCommand command = new(_dbCollection, _mapper);
@@ -82,6 +87,7 @@ namespace TelephoneBookAssignment.Controllers
         }
 
         [HttpDelete]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteContact(string objectId)
         {
             DeleteContactCommand command = new(_dbCollection);

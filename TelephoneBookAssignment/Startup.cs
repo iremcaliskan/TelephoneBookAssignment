@@ -1,14 +1,19 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RabbitMQ.Client;
 using System;
 using System.Reflection;
+using TelephoneBookAssignment.Helpers;
+using TelephoneBookAssignment.Jwt;
 using TelephoneBookAssignment.Middlewares;
 using TelephoneBookAssignment.Services.RabbitMQ;
+using TelephoneBookAssignment.Services.SignalR.Hubs;
 using TelephoneBookAssignment.Shared.DataAccess.MongoDb;
 using TelephoneBookAssignment.Shared.Services.Logger;
 using TelephoneBookAssignment.Shared.Services.RabbitMQ;
@@ -57,6 +62,39 @@ namespace TelephoneBookAssignment
             services.AddSingleton<RabbitMQClientService>();
 
             services.AddSingleton<RabbitMQPublisher>();
+
+            services.AddSignalR();
+
+            //services.AddCors(options =>
+            //{
+            //    options.AddPolicy("AllowOrigin", builder => builder.WithOrigins("http://localhost:3000"));
+            //});
+            
+            services.AddSingleton<ITokenHelper, JwtHelper>();
+
+            // For JWT
+            var tokenOptions = Configuration.GetSection("TokenOptions").Get<TokenOptions>();
+
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+
+            }).AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = true;
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = tokenOptions.Issuer,
+                    ValidAudience = tokenOptions.Audience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = SecurityKeyHelper.CreateSecurityKey(tokenOptions.SecurityKey)
+                };
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -69,7 +107,11 @@ namespace TelephoneBookAssignment
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TelephoneBookAssignment v1"));
             }
 
+            //app.UseCors(builder => builder.WithOrigins("http://localhost:3000").AllowAnyHeader());
+
             app.UseHttpsRedirection();
+
+            app.UseAuthentication();
 
             app.UseRouting();
 
@@ -79,6 +121,8 @@ namespace TelephoneBookAssignment
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHub<ExcelHub>("/ExcelHub");
+
                 endpoints.MapControllers();
             });
         }

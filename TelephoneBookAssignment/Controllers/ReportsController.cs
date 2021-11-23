@@ -4,8 +4,14 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.IO;
+using System.Linq;
+using System.Security.Authentication;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using TelephoneBookAssignment.Services.RabbitMQ;
+using TelephoneBookAssignment.Services.SignalR.Hubs;
 using TelephoneBookAssignment.Shared.DataAccess.MongoDb;
 using TelephoneBookAssignment.Shared.Entities;
 using TelephoneBookAssignment.Shared.Services.RabbitMQ;
@@ -19,12 +25,13 @@ namespace TelephoneBookAssignment.Controllers
         private readonly IMongoTelephoneBookDbContext _context;
         private readonly IMongoCollection<ReportFile> _dbCollection;
         private readonly RabbitMQPublisher _rabbitMqPublisher;
+        private readonly IHubContext<ExcelHub> _hubContext;
 
-
-        public ReportsController(IMongoTelephoneBookDbContext context, RabbitMQPublisher rabbitMqPublisher)
+        public ReportsController(IMongoTelephoneBookDbContext context, RabbitMQPublisher rabbitMqPublisher, IHubContext<ExcelHub> hubContext)
         {
             _context = context;
             _rabbitMqPublisher = rabbitMqPublisher;
+            _hubContext = hubContext;
             _dbCollection = _context.GetCollection<ReportFile>(nameof(ReportFile));
         }
 
@@ -53,21 +60,27 @@ namespace TelephoneBookAssignment.Controllers
             await _dbCollection.FindOneAndReplaceAsync(x => x.ObjectId == new ObjectId(fileId), userFile);
 
             // SignalR - Real Time Notification
-           // await _myHubContext.Clients.User(userFile.UserId).SendAsync("CompletedFile");
+            await _hubContext.Clients.User(userFile.UserId).SendAsync("ExcelCreationCompleted");
 
             return Ok();
         }
 
         [HttpPost("createExcel")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> CreateExcel()
         {
-            //var user = await _userManager.FindByNameAsync(User.Identity.Name); // From cookie
+            if (User.Identity is {IsAuthenticated: false})
+            {
+                throw new AuthenticationException("Please login.");
+            }
+
+            var userId = User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
 
             var fileName = $"report-excel-{Guid.NewGuid().ToString().Substring(1, 10)}";
 
             ReportFile userFile = new()
             {
-                //UserId = user.Id,
+                UserId = userId,
                 FileName = fileName,
                 FileStatus = FileStatus.Creating,
                 RequestedDate = DateTime.Now
@@ -81,14 +94,28 @@ namespace TelephoneBookAssignment.Controllers
             // Transfer a data from one request to another request, stores data in Cookie
             //TempData["CreatingExcelStarted"] = true; // Cookie
 
-            return Ok(true);
+            // SignalR - Real Time Notification
+            if (userFile.UserId != null)
+            {
+                await _hubContext.Clients.User(userFile.UserId).SendAsync("ExcelCreationStarted");
+                return Ok();
+            }
+
+            return BadRequest();
         }
 
         [HttpGet]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> Files()
         {
-            //var user = await _userManager.FindByNameAsync(User.Identity.Name); // From cookie
-            var files = await _dbCollection.Find(x => true).ToListAsync();
+            if (User.Identity is { IsAuthenticated: false })
+            {
+                throw new AuthenticationException("Please login.");
+            }
+
+            var userId = User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+
+            var files = await _dbCollection.Find(x => x.UserId == userId).ToListAsync();
 
             return Ok(files);
         }

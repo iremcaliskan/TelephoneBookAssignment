@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -87,26 +88,32 @@ namespace TelephoneBookAssignment.WorkerService
 
         private DataTable GetTable(string tableName)
         {
-            List<Contact> contacts;
+            List<Report> reports = new();
+
             using (var scope = _serviceProvider.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<IMongoTelephoneBookDbContext>();
                 var collection = context.GetCollection<Contact>(nameof(Contact));
-                contacts = collection.Find(x => true).SortBy(x => x.Name).ToList();
+                
+                var locations = collection.AsQueryable<Contact>().Select(x => x.Information.Location).Distinct().ToList();
+                locations.ForEach(location =>
+                    reports.Add(new Report()
+                    {
+                        Location = location,
+                        ContactCount = collection.AsQueryable<Contact>().Count(x => x.Information.Location == location),
+                        PhoneCount = collection.AsQueryable<Contact>().Count(x => x.Information.Location == location && !string.IsNullOrEmpty(x.Information.PhoneNumber))
+                    }));
             }
 
             // Memory table
             DataTable table = new() { TableName = tableName };
-            table.Columns.Add("Name", typeof(string));
-            table.Columns.Add("Last Name", typeof(string));
-            table.Columns.Add("Firm", typeof(string));
-            table.Columns.Add("Phone Number", typeof(string));
-            table.Columns.Add("Mail", typeof(string));
             table.Columns.Add("Location", typeof(string));
+            table.Columns.Add("Contact Count", typeof(string));
+            table.Columns.Add("Phone Count", typeof(string));
 
-            contacts.ForEach(x =>
+            reports.ForEach(x =>
             {
-                table.Rows.Add(x.Name, x.LastName, x.Firm, x.Information.PhoneNumber, x.Information.Mail, x.Information.Location);
+                table.Rows.Add(x.Location, x.ContactCount, x.PhoneCount);
             });
 
             return table;
