@@ -91,9 +91,6 @@ namespace TelephoneBookAssignment.Controllers
             // RabbitMQ Publish Part
             _rabbitMqPublisher.Publish(new CreateReportMessage() { ObjectId = userFile.ObjectId.ToString() });
 
-            // Transfer a data from one request to another request, stores data in Cookie
-            //TempData["CreatingExcelStarted"] = true; // Cookie
-
             // SignalR - Real Time Notification
             if (userFile.UserId != null)
             {
