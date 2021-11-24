@@ -34,10 +34,13 @@ namespace TelephoneBookAssignment.Application.ContactOperations.Commands.UpdateC
             vm.Name = Model.Name != null ? Model.Name : contact.Name;
             vm.LastName = Model.LastName != null ? Model.LastName : contact.LastName;
             vm.Firm = Model.Firm != null ? Model.Firm : contact.Firm;
-            vm.Information.Location = Model.Information.Location != null ? Model.Information.Location : contact.Information.Location;
-            vm.Information.Mail = Model.Information.Mail != null ? Model.Information.Mail : contact.Information.Mail;
-            vm.Information.PhoneNumber = Model.Information.PhoneNumber != null ? Model.Information.PhoneNumber : contact.Information.PhoneNumber;
-
+            vm.Information = Model.Information != null ? Model.Information : contact.Information;
+            if (Model.Information != null)
+            {
+                vm.Information.Location = Model.Information.Location != null ? Model.Information.Location : contact.Information.Location;
+                vm.Information.Mail = Model.Information.Mail != null ? Model.Information.Mail : contact.Information.Mail;
+                vm.Information.PhoneNumber = Model.Information.PhoneNumber != null ? Model.Information.PhoneNumber : contact.Information.PhoneNumber;
+            }
             await _collection.FindOneAndReplaceAsync(x => x.ObjectId == new ObjectId(ObjectId), vm);
         }
     }
